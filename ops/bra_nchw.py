@@ -14,9 +14,23 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from torch import LongTensor, Tensor
+from rrsda import regional_routing_attention_torch
 
-from ops.torch.rrsda import regional_routing_attention_torch
-
+def research(idx_r, k, new_k=1):
+    # print(idx_r.shape) #[1, 49, 4]
+    # print(idx_r)
+    tmp = idx_r.view(-1)
+    # print(tmp.shape) #[196]
+    # print(tmp)
+    new_idx = idx_r[:,tmp,:new_k]
+    # print(new_idx.shape) #[1, 196, 4]
+    # print(new_idx)
+    new_idx = new_idx.view(idx_r.shape[0], -1, k*new_k)
+    # print(new_idx.shape)
+    # print(new_idx)
+    idx_r = torch.cat([idx_r, new_idx], dim=-1)
+    # print(idx_r.shape)
+    return idx_r
 class nchwBRA(nn.Module):
     """Bi-Level Routing Attention that takes nchw input
 
@@ -81,6 +95,9 @@ class nchwBRA(nn.Module):
         k_r:Tensor = k_r.flatten(2, 3) # nc(hw)
         a_r = q_r @ k_r # n(hw)(hw), adj matrix of regional graph
         _, idx_r = torch.topk(a_r, k=self.topk, dim=-1) # n(hw)k long tensor
+        ######## second search for k to 2k top
+        idx_r = research(idx_r, k=self.topk)
+        ########
         idx_r:LongTensor = idx_r.unsqueeze_(1).expand(-1, self.num_heads, -1, -1) 
 
         # STEP 3: token to token attention (non-parametric function)
@@ -95,3 +112,15 @@ class nchwBRA(nn.Module):
             return output, attn_mat
 
         return output
+
+if __name__ == '__main__':
+    import time
+    import thop
+    x = torch.randn([1,32,224,224])
+    t1 = time.time()
+    model = nchwBRA(dim=32)
+    y = model(x)
+    t = time.time()-t1
+    flops, params = thop.profile(model,inputs=(x,)) #计算
+    flops, params = thop.clever_format([flops, params], "%.3f")
+    print(flops, params)
