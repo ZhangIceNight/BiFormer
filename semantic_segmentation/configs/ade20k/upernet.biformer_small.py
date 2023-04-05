@@ -1,8 +1,8 @@
 _base_ = [
-    '../configs/_base_/models/upernet_r50.py', 
-    '../configs/_base_/datasets/ade20k_upernet.py',
-    '../configs/_base_/default_runtime.py', 
-    '../configs/_base_/schedules/schedule_160k.py'
+    '../_base_/models/upernet_r50.py', 
+    '../_base_/datasets/ade20k_upernet.py',
+    '../_base_/default_runtime.py', 
+    '../_base_/schedules/schedule_160k.py'
 ]
 
 # model.pretrained is actually loaded by backbone, see
