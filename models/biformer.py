@@ -23,7 +23,8 @@ from timm.models import register_model
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from timm.models.vision_transformer import _cfg
 
-from ops.bra_legacy import BiLevelRoutingAttention
+# from ops.bra_legacy import BiLevelRoutingAttention
+from ops.bra_nchw import nchwBRA
 
 from ._common import Attention, AttentionLePE, DWConv
 
@@ -67,11 +68,8 @@ class Block(nn.Module):
             self.pos_embed = lambda x: 0
         self.norm1 = nn.LayerNorm(dim, eps=1e-6) # important to avoid attention collapsing
         if topk > 0:
-            self.attn = BiLevelRoutingAttention(dim=dim, num_heads=num_heads, n_win=n_win, qk_dim=qk_dim,
-                                        qk_scale=qk_scale, kv_per_win=kv_per_win, kv_downsample_ratio=kv_downsample_ratio,
-                                        kv_downsample_kernel=kv_downsample_kernel, kv_downsample_mode=kv_downsample_mode,
-                                        topk=topk, param_attention=param_attention, param_routing=param_routing,
-                                        diff_routing=diff_routing, soft_routing=soft_routing, side_dwconv=side_dwconv,
+            self.attn = nchwBRA(dim=dim, num_heads=num_heads, n_win=n_win,
+                                        qk_scale=qk_scale, topk=topk, side_dwconv=side_dwconv,
                                         auto_pad=auto_pad)
         elif topk == -1:
             self.attn = Attention(dim=dim)

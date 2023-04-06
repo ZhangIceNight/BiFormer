@@ -5,6 +5,7 @@ from mmcv_custom import load_checkpoint
 from mmseg.models.builder import BACKBONES
 from mmseg.utils import get_root_logger
 from models_cls.biformer import BiFormer 
+# from models_cls.biformer_stl import BiFormerSTL as BiFormer 
 from timm.models.layers import LayerNorm2d
 
 

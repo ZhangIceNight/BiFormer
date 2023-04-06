@@ -109,7 +109,6 @@ def regional_routing_attention_torch(
     # (bs, nhead, q_nregion, reg_size, topk*kv_region_size) @ (bs, nhead, q_nregion, topk*kv_region_size, head_dim)
     # -> (bs, nhead, q_nregion, reg_size, head_dim)
     output = attn @ value_g.flatten(-3, -2)
-
     # to BCHW format
     output = _seq2grid(output, region_h=q_region_h, region_w=q_region_w, region_size=region_size)
 

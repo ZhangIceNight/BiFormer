@@ -14,20 +14,23 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from torch import LongTensor, Tensor
-from rrsda import regional_routing_attention_torch
+from .rrsda import regional_routing_attention_torch
 
 def research(idx_r, k, new_k=1):
     # print(idx_r.shape) #[1, 49, 4]
     # print(idx_r)
+    B = idx_r.shape[0]
+    idx_r = idx_r.view(-1, k)
     tmp = idx_r.view(-1)
     # print(tmp.shape) #[196]
     # print(tmp)
-    new_idx = idx_r[:,tmp,:new_k]
+    new_idx = idx_r[tmp,:new_k].contiguous()
     # print(new_idx.shape) #[1, 196, 4]
     # print(new_idx)
-    new_idx = new_idx.view(idx_r.shape[0], -1, k*new_k)
+    new_idx = new_idx.view(B, -1, k*new_k)
     # print(new_idx.shape)
     # print(new_idx)
+    idx_r = idx_r.view(B, -1, k)
     idx_r = torch.cat([idx_r, new_idx], dim=-1)
     # print(idx_r.shape)
     return idx_r
@@ -79,7 +82,9 @@ class nchwBRA(nn.Module):
         Return:
             NCHW tensor
         """
-        N, C, H, W = x.size()
+        N, H, W, C = x.size()
+        x = x.reshape(N,C,H,W).contiguous()
+        # print("x:",x.shape)
         region_size = (H//self.n_win, W//self.n_win)
 
         # STEP 1: linear projection
@@ -96,7 +101,7 @@ class nchwBRA(nn.Module):
         a_r = q_r @ k_r # n(hw)(hw), adj matrix of regional graph
         _, idx_r = torch.topk(a_r, k=self.topk, dim=-1) # n(hw)k long tensor
         ######## second search for k to 2k top
-        idx_r = research(idx_r, k=self.topk)
+        # idx_r = research(idx_r, k=self.topk)
         ########
         idx_r:LongTensor = idx_r.unsqueeze_(1).expand(-1, self.num_heads, -1, -1) 
 
@@ -104,10 +109,11 @@ class nchwBRA(nn.Module):
         output, attn_mat = self.attn_fn(query=q, key=k, value=v, scale=self.scale,
                                         region_graph=idx_r, region_size=region_size
                                        )
-        
+        # print("output:",output.shape)
+        # print("lv:",self.lepe(v).shape)
         output = output + self.lepe(v) # ncHW
         output = self.output_linear(output) # ncHW
-
+        output = output.view(N,H,W,C)
         if ret_attn_mask:
             return output, attn_mat
 
@@ -116,11 +122,12 @@ class nchwBRA(nn.Module):
 if __name__ == '__main__':
     import time
     import thop
-    x = torch.randn([1,32,224,224])
-    t1 = time.time()
-    model = nchwBRA(dim=32)
+    x = torch.randn([4,98,98,64])
+    # t1 = time.time()
+    model = nchwBRA(dim=64)
     y = model(x)
-    t = time.time()-t1
-    flops, params = thop.profile(model,inputs=(x,)) #计算
-    flops, params = thop.clever_format([flops, params], "%.3f")
-    print(flops, params)
+    # t = time.time()-t1
+    # flops, params = thop.profile(model,inputs=(x,)) #计算
+    # flops, params = thop.clever_format([flops, params], "%.3f")
+    # print(flops, params)
+    print(y.shape)

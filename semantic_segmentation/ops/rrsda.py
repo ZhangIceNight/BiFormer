@@ -72,6 +72,8 @@ def regional_routing_attention_torch(
         _, _, Hq, Wq = query.size()
         q_pad_b = (region_size[0] - Hq % region_size[0]) % region_size[0]
         q_pad_r = (region_size[1] - Wq % region_size[1]) % region_size[1]
+        # print("qb:", q_pad_b)
+        # print("qr:", q_pad_r)
         if (q_pad_b > 0 or q_pad_r > 0):
             query = F.pad(query, (0, q_pad_r, 0, q_pad_b)) # zero padding
 
@@ -109,12 +111,18 @@ def regional_routing_attention_torch(
     # (bs, nhead, q_nregion, reg_size, topk*kv_region_size) @ (bs, nhead, q_nregion, topk*kv_region_size, head_dim)
     # -> (bs, nhead, q_nregion, reg_size, head_dim)
     output = attn @ value_g.flatten(-3, -2)
+    # print("output1:",output.shape)
 
     # to BCHW format
     output = _seq2grid(output, region_h=q_region_h, region_w=q_region_w, region_size=region_size)
-
+    # print("output2:",output.shape)
     # remove paddings if needed
     if auto_pad and (q_pad_b > 0 or q_pad_r > 0):
-        output = output[:, :, :-q_pad_b, :-q_pad_r]
-
+        if q_pad_b == 0:
+            output = output[:, :, :, :-q_pad_r]
+        elif q_pad_r == 0:
+            output = output[:, :, :-q_pad_b, :]
+        else:
+            output = output[:, :, :-q_pad_b, :-q_pad_r]
+        # print("output3:",output.shape)
     return output, attn
