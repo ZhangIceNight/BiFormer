@@ -95,9 +95,11 @@ class TopkRouting(nn.Module):
             query, key = query.detach(), key.detach()
         query_hat, key_hat = self.emb(query), self.emb(key) # per-window pooling -> (n, p^2, c) 
         attn_logit = (query_hat*self.scale) @ key_hat.transpose(-2, -1) # (n, p^2, p^2)
-        att, topk_index = torch.topk(attn_logit, k=self.topk, dim=-1) # (n, p^2, k), (n, p^2, k)
+        _, topk_index = torch.topk(attn_logit, k=self.topk, dim=-1) # (n, p^2, k), (n, p^2, k)
 
         # get nk idx
+        if self.new_k > self.topk:
+            self.new_k = self.topk
         tmp = topk_index.view(B,-1)
         new_idx = topk_index[B_index,tmp,:self.new_k].contiguous()
         new_idx = new_idx.view(B, -1, self.topk*self.new_k)
@@ -107,15 +109,15 @@ class TopkRouting(nn.Module):
         # print("topk_index:",topk_index.shape)
         # tmp = topk_index.reshape(-1)
         # attn_logit = attn_logit.reshape(49,49)
-        idx = topk_index.reshape(B,-1,self.topk*(1+self.new_k))
+        # idx = topk_index.reshape(B,-1,self.topk*(1+self.new_k))
         # print("idx:",idx.shape)
         # print(B_index)
-        topk_attn_logit = torch.zeros_like(torch.randn([B,N,self.topk*(1+self.new_k)]))
+        # topk_attn_logit = torch.zeros_like(torch.randn([B,N,self.topk*(1+self.new_k)]))
         # for i in range(B):
         # for i in range(100):
         #     print("i'm new K") 
             # topk_attn_logit[i] = attn_logit[i][N_index, idx[i]]
-        topk_attn_logit = torch.gather(attn_logit, -1, idx)
+        topk_attn_logit = torch.gather(attn_logit, -1, topk_index)
         # topk_attn_logit = attn_logit[B_index,N_index,N_index]
         # print("topk_attn_logit:",topk_attn_logit.shape)
         # att = attn_logit.index_select(1,torch.LongTensor(idx))
