@@ -71,6 +71,12 @@ class Block(nn.Module):
             self.attn = nchwBRA(dim=dim, num_heads=num_heads, n_win=n_win,
                                         qk_scale=qk_scale, topk=topk, side_dwconv=side_dwconv,
                                         auto_pad=auto_pad)
+            # self.attn = BiLevelRoutingAttention(dim=dim, num_heads=num_heads, n_win=n_win, qk_dim=qk_dim,
+            #                             qk_scale=qk_scale, kv_per_win=kv_per_win, kv_downsample_ratio=kv_downsample_ratio,
+            #                             kv_downsample_kernel=kv_downsample_kernel, kv_downsample_mode=kv_downsample_mode,
+            #                             topk=topk, param_attention=param_attention, param_routing=param_routing,
+            #                             diff_routing=diff_routing, soft_routing=soft_routing, side_dwconv=side_dwconv,
+            #                             auto_pad=auto_pad)
         elif topk == -1:
             self.attn = Attention(dim=dim)
         elif topk == -2:

@@ -16,7 +16,9 @@ import torch.nn.functional as F
 from torch import LongTensor, Tensor
 from .rrsda import regional_routing_attention_torch
 
-def research(idx_r, k, new_k=1):
+def research(idx_r, k, new_k=2):
+    if new_k > k:
+        new_k = k
     # print(idx_r.shape) #[1, 49, 4]
     # print(idx_r)
     B = idx_r.shape[0]
@@ -29,6 +31,7 @@ def research(idx_r, k, new_k=1):
     # print(new_idx)
     new_idx = new_idx.view(B, -1, k*new_k)
     # print(new_idx.shape)
+    # print(new_k)
     # print(new_idx)
     idx_r = idx_r.view(B, -1, k)
     idx_r = torch.cat([idx_r, new_idx], dim=-1)
@@ -101,7 +104,7 @@ class nchwBRA(nn.Module):
         a_r = q_r @ k_r # n(hw)(hw), adj matrix of regional graph
         _, idx_r = torch.topk(a_r, k=self.topk, dim=-1) # n(hw)k long tensor
         ######## second search for k to 2k top
-        # idx_r = research(idx_r, k=self.topk)
+        idx_r = research(idx_r, k=self.topk)
         ########
         idx_r:LongTensor = idx_r.unsqueeze_(1).expand(-1, self.num_heads, -1, -1) 
 
