@@ -20,20 +20,24 @@ def research(idx_r, k, new_k=2):
     if new_k > k:
         new_k = k
     # print(idx_r.shape) #[1, 49, 4]
-    # print(idx_r)
-    B = idx_r.shape[0]
-    idx_r = idx_r.view(-1, k)
-    tmp = idx_r.view(-1)
+    # print(idx_r[1])
+    B, N, C = idx_r.shape
+    B_index = [[i] for i in range(B)]
+
+
+    # idx_r = idx_r.view(-1, k)
+    tmp = idx_r.view(B,-1)
     # print(tmp.shape) #[196]
     # print(tmp)
-    new_idx = idx_r[tmp,:new_k].contiguous()
+    new_idx = idx_r[B_index,tmp,:new_k].contiguous()
     # print(new_idx.shape) #[1, 196, 4]
-    # print(new_idx)
+    
     new_idx = new_idx.view(B, -1, k*new_k)
+    # print(new_idx[1][0])
     # print(new_idx.shape)
     # print(new_k)
     # print(new_idx)
-    idx_r = idx_r.view(B, -1, k)
+    # idx_r = idx_r.view(B, -1, k)
     idx_r = torch.cat([idx_r, new_idx], dim=-1)
     # print(idx_r.shape)
     return idx_r
