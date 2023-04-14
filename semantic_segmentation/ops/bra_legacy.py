@@ -68,7 +68,7 @@ class TopkRouting(nn.Module):
         diff_routing: bool, wether make routing differentiable
         soft_routing: bool, wether make output value multiplied by routing weights
     """
-    def __init__(self, qk_dim, topk=4, new_k=1, qk_scale=None, param_routing=False, diff_routing=False):
+    def __init__(self, qk_dim, topk=4, new_k=2, qk_scale=None, param_routing=False, diff_routing=False):
         super().__init__()
         self.topk = topk
         self.new_k = new_k
