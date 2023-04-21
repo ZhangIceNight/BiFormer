@@ -1,11 +1,7 @@
-# copied from Uniformer
-# https://github.com/Sense-X/UniFormer/blob/main/semantic_segmentation/configs/_base_/datasets/ade20k.py
-
 # dataset settings
-dataset_type = 'ISPRSDataset'
-data_root = 'data/ISPRS/Vaihingen'
-img_norm_cfg = dict(
-    mean=[0.328, 0.33, 0.487], std=[0.14, 0.145, 0.198], to_rgb=True)
+dataset_type = 'PotsdamDataset'
+data_root = 'data/potsdam'
+img_norm_cfg = dict(mean=[0.27471144, 0.29321487, 0.27526411], std=[0.2032252,  0.20871203, 0.20317493], to_rgb=True)
 crop_size = (512, 512)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -34,24 +30,42 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
+img_ratios = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+tta_pipeline = [
+    dict(type='LoadImageFromFile', backend_args=None),
+    dict(
+        type='TestTimeAug',
+        transforms=[
+            [
+                dict(type='Resize', scale_factor=r, keep_ratio=True)
+                for r in img_ratios
+            ],
+            [
+                dict(type='RandomFlip', prob=0., direction='horizontal'),
+                dict(type='RandomFlip', prob=1., direction='horizontal')
+            ], [dict(type='LoadAnnotations')], [dict(type='PackSegInputs')]
+        ])
+]
 data = dict(
     samples_per_gpu=4,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='images/training',
-        ann_dir='annotations/training',
+        img_dir='img_dir/train', 
+        ann_dir='ann_dir/train',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='images/validation',
-        ann_dir='annotations/validation',
+        img_dir='img_dir/val', 
+        ann_dir='ann_dir/val',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='images/validation',
-        ann_dir='annotations/validation',
-        pipeline=test_pipeline))
+        img_dir='img_dir/val', 
+        ann_dir='ann_dir/val',
+        pipeline=test_pipeline)    
+)
+
