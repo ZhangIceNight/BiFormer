@@ -7,6 +7,9 @@ from mmseg.utils import get_root_logger
 from models_cls.biformer import BiFormer 
 # from models_cls.biformer_stl import BiFormerSTL as BiFormer 
 from timm.models.layers import LayerNorm2d
+from .SIM import SIM
+from .PatchMerging import PatchMerging
+
 
 
 @BACKBONES.register_module()  
@@ -17,12 +20,24 @@ class BiFormer_mm(BiFormer):
         # step 1: remove unused segmentation head & norm
         del self.head # classification head
         del self.norm # head norm
-
+        #del self.downsample_layers
         # step 2: add extra norms for dense tasks
         self.extra_norms = nn.ModuleList()
+        # self.sims = nn.ModuleList()
+        #self.patchMergings = nn.ModuleList()
         for i in range(4):
             self.extra_norms.append(LayerNorm2d(self.embed_dim[i]))
-        
+            # self.sims.append(SIM(self.embed_dim[i]))
+            #self.patchMergings.append(PatchMerging(self.embed_dim[i]//2))
+            self.hg_layers.append(HyperGraphBlock(self.embed_dim[i], self.embed_dim[i]))
+        #self.preEmb = nn.Sequential(
+            #nn.Conv2d(3, self.embed_dim[0] // 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            #nn.BatchNorm2d(self.embed_dim[0] // 2),
+            #nn.GELU()
+        #) 
+
+
+
         # step 3: initialization & load ckpt
         self.apply(self._init_weights)
         self.init_weights(pretrained=pretrained)
@@ -30,6 +45,7 @@ class BiFormer_mm(BiFormer):
         # step 4: convert sync bn, as the batch size is too small in segmentation
         # TODO: check if this is correct
         nn.SyncBatchNorm.convert_sync_batchnorm(self)
+
 
     def init_weights(self, pretrained):
         if isinstance(pretrained, str):
@@ -39,9 +55,14 @@ class BiFormer_mm(BiFormer):
     
     def forward_features(self, x: torch.Tensor):
         out = []
+        #x = self.preEmb(x)
         for i in range(4):
             x = self.downsample_layers[i](x)
+            #x = self.patchMergings[i](x)
+            # short = self.sims[i](x)
             x = self.stages[i](x)
+            x = self.hg_layers[i](x)
+            # x = x + short
             # DONE: check the inconsistency -> no effect on performance
             # in the version before submission:
             # x = self.extra_norms[i](x)
@@ -51,3 +72,9 @@ class BiFormer_mm(BiFormer):
     
     def forward(self, x:torch.Tensor):
         return self.forward_features(x)
+
+
+if __name__ == "__main__":
+  b, h, w, c = 4, 224, 224, 48
+  x = torch.randn([b,c,h,w]).cuda()
+

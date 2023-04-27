@@ -61,12 +61,14 @@ lr_config = dict(_delete_=True, policy='poly',
                  warmup_ratio=1e-6,
                  power=1.0, min_lr=0.0, by_epoch=False)
 
-data=dict(samples_per_gpu=8)
+data=dict(samples_per_gpu=4)
 #############################################################################
 
-checkpoint_config = dict(max_keep_ckpts=1)
-evaluation = dict(save_best='mIoU')
-
+#checkpoint_config = dict(max_keep_ckpts=1)
+#evaluation = dict(save_best='mIoU')
+gpu_multiples = 2
+checkpoint_config = dict(by_epoch=False, interval=8000//gpu_multiples, max_keep_ckpts=1)
+evaluation = dict(interval=8000//gpu_multiples, save_best='mIoU')
 # NOTE: True is conflict with checkpoint 
 # https://github.com/allenai/longformer/issues/63#issuecomment-648861503
 find_unused_parameters=False
