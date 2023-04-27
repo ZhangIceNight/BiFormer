@@ -68,7 +68,7 @@ class TopkRouting(nn.Module):
         diff_routing: bool, wether make routing differentiable
         soft_routing: bool, wether make output value multiplied by routing weights
     """
-    def __init__(self, qk_dim, topk=4, new_k=2, qk_scale=None, param_routing=False, diff_routing=False):
+    def __init__(self, qk_dim, topk=4, new_k=1, qk_scale=None, param_routing=False, diff_routing=False):
         super().__init__()
         self.topk = topk
         self.new_k = new_k
@@ -98,12 +98,12 @@ class TopkRouting(nn.Module):
         topk_attn_logit, topk_index = torch.topk(attn_logit, k=self.topk, dim=-1) # (n, p^2, k), (n, p^2, k)
 
         # get nk idx
-        #if self.new_k > self.topk:
-            #self.new_k = self.topk
-        #tmp = topk_index.view(B,-1)
-        #new_idx = topk_index[B_index,tmp,:self.new_k].contiguous()
-        #new_idx = new_idx.view(B, -1, self.topk*self.new_k)
-        #topk_index = torch.cat([topk_index, new_idx], dim=-1)
+        if self.new_k > self.topk:
+            self.new_k = self.topk
+        tmp = topk_index.view(B,-1)
+        new_idx = topk_index[B_index,tmp,:self.new_k].contiguous()
+        new_idx = new_idx.view(B, -1, self.topk*self.new_k)
+        topk_index = torch.cat([topk_index, new_idx], dim=-1)
 
         # print("attn_logit:",attn_logit.shape)
         # print("topk_index:",topk_index.shape)
@@ -119,7 +119,7 @@ class TopkRouting(nn.Module):
             # topk_attn_logit[i] = attn_logit[i][N_index, idx[i]]
         
         # get nk attn
-        # topk_attn_logit = torch.gather(attn_logit, -1, topk_index)
+        topk_attn_logit = torch.gather(attn_logit, -1, topk_index)
         
 
         # topk_attn_logit = attn_logit[B_index,N_index,N_index]
