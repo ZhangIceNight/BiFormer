@@ -9,8 +9,7 @@ from models_cls.biformer import BiFormer
 from timm.models.layers import LayerNorm2d
 from .SIM import SIM
 from .PatchMerging import PatchMerging
-
-
+from .HyperGraphBlock import HGNNPBlock
 
 @BACKBONES.register_module()  
 class BiFormer_mm(BiFormer):
@@ -23,18 +22,19 @@ class BiFormer_mm(BiFormer):
         #del self.downsample_layers
         # step 2: add extra norms for dense tasks
         self.extra_norms = nn.ModuleList()
-        # self.sims = nn.ModuleList()
-        #self.patchMergings = nn.ModuleList()
+        self.hg_layers = nn.ModuleList()
+        self.sims = nn.ModuleList()
+        self.patchMergings = nn.ModuleList()
         for i in range(4):
             self.extra_norms.append(LayerNorm2d(self.embed_dim[i]))
-            # self.sims.append(SIM(self.embed_dim[i]))
-            #self.patchMergings.append(PatchMerging(self.embed_dim[i]//2))
-            self.hg_layers.append(HyperGraphBlock(self.embed_dim[i], self.embed_dim[i]))
-        #self.preEmb = nn.Sequential(
-            #nn.Conv2d(3, self.embed_dim[0] // 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
-            #nn.BatchNorm2d(self.embed_dim[0] // 2),
-            #nn.GELU()
-        #) 
+            self.sims.append(SIM(self.embed_dim[i]))
+            self.patchMergings.append(PatchMerging(self.embed_dim[i]//2))
+            self.hg_layers.append(HGNNPBlock(self.embed_dim[i], self.embed_dim[i]))
+        self.preEmb = nn.Sequential(
+            nn.Conv2d(3, self.embed_dim[0] // 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
+            nn.BatchNorm2d(self.embed_dim[0] // 2),
+            nn.GELU()
+        ) 
 
 
 
@@ -55,14 +55,20 @@ class BiFormer_mm(BiFormer):
     
     def forward_features(self, x: torch.Tensor):
         out = []
-        #x = self.preEmb(x)
+        y = self.preEmb(x)
         for i in range(4):
+            if i==0:
+                y = self.patchMergings[i](y)
+            else:
+                y = self.patchMergings[i](x)
             x = self.downsample_layers[i](x)
-            #x = self.patchMergings[i](x)
-            # short = self.sims[i](x)
+            x = x + y
+            short = self.sims[i](x)
             x = self.stages[i](x)
-            x = self.hg_layers[i](x)
-            # x = x + short
+            short = self.hg_layers[i](short)
+            x = x + short
+            del y
+            del short
             # DONE: check the inconsistency -> no effect on performance
             # in the version before submission:
             # x = self.extra_norms[i](x)
