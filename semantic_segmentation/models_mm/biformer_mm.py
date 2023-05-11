@@ -64,6 +64,7 @@ class BiFormer_mm(BiFormer):
             x = self.downsample_layers[i](x)
             x = x + y
             short = self.sims[i](x)
+            #short = x
             x = self.stages[i](x)
             short = self.hg_layers[i](short)
             x = x + short

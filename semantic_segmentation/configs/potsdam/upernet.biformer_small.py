@@ -40,18 +40,21 @@ model=dict(
         drop_path_rate=0.3), # it seems that, upernet requires a larger dpr
     decode_head=dict(
         in_channels=[64, 128, 256, 512],
-        num_classes=6),
+        num_classes=6,
+        loss_decode=dict(type='DiceLoss', loss_name='loss_dice', loss_weight=1.0)),
     auxiliary_head=dict(
         in_channels=256,
-        num_classes=6))
+        num_classes=6,
+        loss_decode=dict(type='DiceLoss', loss_name='loss_dice', loss_weight=1.0))
+        )
 
-
+# [dict(type='CrossEntropyLoss', loss_name='loss_ce', loss_weight=1.0),dict(type='DiceLoss', loss_name='loss_dice', loss_weight=3.0)]
 ############## below we strictly follow uniformer & cswin ####################################
 # https://github.com/Sense-X/UniFormer/blob/main/semantic_segmentation/exp/upernet_global_small/config.py
 # https://github.com/microsoft/CSWin-Transformer/blob/main/segmentation/configs/cswin/upernet_cswin_tiny.py
 ##############################################################################################
 # AdamW optimizer, no weight decay for position embedding & layer norm in backbone
-optimizer = dict(_delete_=True, type='AdamW', lr=0.00006*2, betas=(0.9, 0.999), weight_decay=0.01,
+optimizer = dict(_delete_=True, type='AdamW', lr=0.00006*4, betas=(0.9, 0.999), weight_decay=0.01,
                  paramwise_cfg=dict(custom_keys={'absolute_pos_embed': dict(decay_mult=0.),
                                                  'relative_position_bias_table': dict(decay_mult=0.),
                                                  'norm': dict(decay_mult=0.)}))
@@ -61,7 +64,7 @@ lr_config = dict(_delete_=True, policy='poly',
                  warmup_ratio=1e-6,
                  power=1.0, min_lr=0.0, by_epoch=False)
 
-data=dict(samples_per_gpu=8)
+data=dict(samples_per_gpu=4)
 #############################################################################
 
 #checkpoint_config = dict(max_keep_ckpts=1)

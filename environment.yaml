@@ -1,4 +1,4 @@
-name: biformer
+name: dhg
 channels:
   - pytorch
   - defaults
