@@ -41,11 +41,11 @@ model=dict(
     decode_head=dict(
         in_channels=[64, 128, 256, 512],
         num_classes=6,
-        loss_decode=dict(type='DiceLoss', loss_name='loss_dice', loss_weight=1.0)),
+        loss_decode=[dict(type='CrossEntropyLoss', loss_name='loss_ce', loss_weight=1.0),dict(type='DiceLoss', loss_name='loss_dice', loss_weight=3.0)]),
     auxiliary_head=dict(
         in_channels=256,
         num_classes=6,
-        loss_decode=dict(type='DiceLoss', loss_name='loss_dice', loss_weight=1.0))
+        loss_decode=[dict(type='CrossEntropyLoss', loss_name='loss_ce', loss_weight=0.4*1.0),dict(type='DiceLoss', loss_name='loss_dice', loss_weight=0.4*3.0)])
         )
 
 # [dict(type='CrossEntropyLoss', loss_name='loss_ce', loss_weight=1.0),dict(type='DiceLoss', loss_name='loss_dice', loss_weight=3.0)]

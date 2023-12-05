@@ -1,6 +1,13 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 
+
+
+import sys
+import os
+path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append('../..')
+
 from mmcv import Config
 from mmcv.cnn import get_model_complexity_info
 
